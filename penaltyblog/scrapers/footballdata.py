@@ -70,25 +70,39 @@ class FootballData(RequestsScraper):
         return df
 
     def get_fixtures(self) -> pd.DataFrame:
-        """
-        Downloads the fixtures and returns them as a pandas data frame
-        """
-        url = self.base_url.format(
-            season=self.mapped_season, competition=self.mapped_competition
-        )
-
+    """
+    Downloads the fixtures and returns them as a pandas data frame
+    """
+        # Se è MLS o JPN si usa il file unico
+        if self.competition in ["MLS Soccer League", "JPN J1 League"]:
+            url = f"https://www.football-data.co.uk/{self.mapped_competition}.csv"
+        else:
+            url = self.base_url.format(
+                season=self.mapped_season, competition=self.mapped_competition
+            )
+    
         col_renames = {
             "HomeTeam": "team_home",
             "AwayTeam": "team_away",
         }
-
+    
         content = self.get(url)
         df = (
             pd.read_csv(io.StringIO(content))
             .pipe(self._convert_date)
             .rename(columns=col_renames)
             .pipe(sanitize_columns)
-            .assign(season=self.season)
+        )
+    
+        # Filtro solo per MLS/JPN
+        if self.competition in ["MLS Soccer League", "JPN J1 League"]:
+            start_year, end_year = map(int, self.season.split("-"))
+            start_date = pd.to_datetime(f"{start_year}-01-01")
+            end_date = pd.to_datetime(f"{end_year}-12-31")
+            df = df[(df["date"] >= start_date) & (df["date"] <= end_date)]
+    
+        df = (
+            df.assign(season=self.season)
             .assign(competition=self.competition)
             .assign(goals_home=lambda x: x["fthg"])
             .assign(goals_away=lambda x: x["ftag"])
@@ -98,12 +112,13 @@ class FootballData(RequestsScraper):
             .set_index(["id"])
             .sort_index()
         )
-
+    
         cols = ["competition", "season", "datetime", "date"]
         i = 0
         for c in cols:
             if c in df.columns:
                 move_column_inplace(df, c, i)
-                i += 0
-
+                i += 1
+    
         return df
+
