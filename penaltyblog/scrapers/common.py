@@ -367,6 +367,13 @@ COMPETITION_MAPPINGS: Dict[str, Dict[str, Any]] = {
         },
         "footballdata": {"slug": "T1"},
     },
+    "MLS Soccer League": {
+    "footballdata": {"slug": "USA"},
+    },
+    "JPN J1 League": {
+        "footballdata": {"slug": "JPN"},
+},
+
 }
 
 
